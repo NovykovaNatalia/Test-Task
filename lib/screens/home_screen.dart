@@ -1,34 +1,49 @@
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:http/http.dart' as http;
+import 'package:leads_do_it_test/bloc/home/home_event.dart';
+import 'package:leads_do_it_test/bloc/home/home_state.dart';
 import 'package:leads_do_it_test/screens/favorites_screen.dart';
-import 'package:leads_do_it_test/main.dart';
-import 'package:leads_do_it_test/models/repo.dart';
-import 'package:leads_do_it_test/models/search_query.dart';
 import 'package:leads_do_it_test/themes/strings.dart';
 import 'package:leads_do_it_test/themes/app_colors.dart';
 import 'package:leads_do_it_test/themes/styles.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../bloc/home/home_bloc.dart';
+import '../themes/images.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  var repoList = ["one", "two", "three"];
-  List<bool> _checked = List.filled(5, false);
-  String _searchQuery = '';
-  List<Repo> _searchResults = [];
+  late HomeBloc _bloc;
+  late final TextEditingController _textEditingController;
+
+  @override
+  void initState() {
+    _bloc = HomeBloc();
+    _textEditingController = TextEditingController();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _textEditingController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: _buildTopping(),
-      body: _buildBody(),
-    );
+    return BlocProvider<HomeBloc>(
+        create: (context) => _bloc,
+        child: Scaffold(
+          appBar: _buildTopping(),
+          body: _buildBody(),
+        ));
   }
 
   Column _buildBody() {
@@ -38,80 +53,84 @@ class _HomeScreenState extends State<HomeScreen> {
         Align(
           alignment: Alignment.centerLeft,
           child: Padding(
-            padding: EdgeInsets.only(left: 16, top: 18, bottom: 18),
-            child: Text(
-              _searchResults.isEmpty ? 'Search history' : 'What we have found',
-              style: Styles.textHistory,
-            ),
+            padding: const EdgeInsets.only(left: 16, top: 18, bottom: 18),
+            child: BlocBuilder<HomeBloc, HomeState>(
+                bloc: _bloc,
+                builder: (context, state) {
+                  return Text(
+                    state.searchResults.isEmpty
+                        ? 'Search history'
+                        : 'What we have found',
+                    style: Styles.textHistory,
+                  );
+                }),
           ),
         ),
-        _searchResults.isEmpty ? showSearchHistory() : showFoundResults(),
+        BlocBuilder<HomeBloc, HomeState>(
+            bloc: _bloc,
+            builder: (context, state) {
+              return state.searchQuery.isEmpty || state.searchResults.isEmpty
+                  ? showSearchHistory()
+                  : showFoundResults();
+            }),
       ],
     );
   }
 
   Widget showFoundResults() {
-    return Expanded(
-      child: ListView.builder(
-        itemCount: _searchResults.length,
-        itemBuilder: (BuildContext context, int index) {
-          return Container(
-            decoration: BoxDecoration(
-              color: AppColors.layer_1,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  changeFavorite(index);
-                });
+    return BlocBuilder<HomeBloc, HomeState>(
+        bloc: _bloc,
+        builder: (context, state) {
+          return Expanded(
+            child: ListView.builder(
+              itemCount: state.searchResults.length,
+              itemBuilder: (BuildContext context, int index) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.layer_1,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                  child: GestureDetector(
+                    onTap: () {
+                      _bloc.add(ChangeFavoriteByIndexEvent(state.searchResults[index]));
+                    },
+                    child: ListTile(
+                      trailing: IconButton(
+                        icon: state.searchResults[index].isFavorite
+                            ? SvgPicture.asset(Images.activeCheckboxIcon)
+                            : SvgPicture.asset(Images.inactiveCheckboxIcon),
+                        onPressed: () {
+                          _bloc.add(ChangeFavoriteByIndexEvent(state.searchResults[index]));
+                        },
+                      ),
+                      title: Text(state.searchResults[index].name),
+                    ),
+                  ),
+                );
               },
-              child: ListTile(
-                trailing: IconButton(
-                  icon: _searchResults[index].isFavorite
-                      ? SvgPicture.asset(
-                          'assets/imgs/favorite_active.svg',
-                        )
-                      : SvgPicture.asset(
-                          'assets/imgs/favorite_not_active.svg',
-                        ),
-                  onPressed: () {
-                    setState(() {
-                      changeFavorite(index);
-                    });
-                  },
-                ),
-                title: Text(_searchResults[index].name),
-                // subtitle: Text(_searchResults[index].description),
-              ),
             ),
           );
-        },
-      ),
-    );
-  }
-
-  void changeFavorite(int index) {
-    _searchResults[index].isFavorite = !_searchResults[index].isFavorite;
-    if (_searchResults[index].isFavorite) {
-      favoriteList.add(_searchResults[index]);
-    } else {
-      favoriteList.remove(_searchResults[index]);
-    }
+        });
   }
 
   Widget showSearchHistory() {
-    return Expanded(
-        child: ListView.builder(
-            itemCount: searchHistory.queries.length,
-            itemBuilder: (BuildContext context, int index) {
-              return ListTile(
-                title: Text(searchHistory.queries[index].query),
-                subtitle:
-                    Text(searchHistory.queries[index].timeStamp.toString()),
-              );
-            }));
+    return BlocBuilder<HomeBloc, HomeState>(
+        bloc: _bloc,
+        builder: (context, state) {
+        return Expanded(
+            child: ListView.builder(
+                itemCount: state.searchHistory.queries.length,
+                itemBuilder: (BuildContext context, int index) {
+                  final reversedIndex = state.searchHistory.queries.length - index - 1;
+                  return ListTile(
+                    title: Text(state.searchHistory.queries[reversedIndex].query),
+                    subtitle:
+                        Text(state.searchHistory.queries[reversedIndex].timeStamp.toString()),
+                  );
+                }));
+      }
+    );
   }
 
   AppBar _buildTopping() {
@@ -134,13 +153,11 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               InkWell(
                 onTap: () {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const FavouriteScreen()),
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => FavouriteScreen(_bloc)),
                   );
                 },
-                child: SvgPicture.asset(
-                  'assets/imgs/favourites.svg',
-                ),
+                child: SvgPicture.asset(Images.favoritesIcon),
               ),
             ],
           ),
@@ -159,13 +176,12 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(30),
         ),
         child: TextField(
+          controller: _textEditingController,
           onChanged: (text) {
-            setState(() {
-              _searchQuery = text;
-            });
+            _bloc.add(ChangeSearchQueryEvent(text));
           },
           onSubmitted: (text) {
-            _performSearch();
+            _bloc.add(SearchTextEvent());
           },
           decoration: InputDecoration(
             labelText: Strings.search,
@@ -173,81 +189,21 @@ class _HomeScreenState extends State<HomeScreen> {
             prefixIcon: Padding(
               padding: const EdgeInsets.only(
                   top: 18, bottom: 18, left: 20, right: 20),
-              child: SvgPicture.asset(
-                'assets/imgs/search.svg',
-              ),
+              child: SvgPicture.asset(Images.searchIcon),
             ),
             suffixIcon: Padding(
               padding: const EdgeInsets.all(18),
-              child: SvgPicture.asset(
-                'assets/imgs/close.svg',
+              child: InkWell(
+                onTap: () {
+                  _textEditingController.clear();
+                  _bloc.add(ClearSearchQueryEvent());
+                },
+                child: SvgPicture.asset(Images.closeIcon),
               ),
             ),
           ),
         ),
       ),
     );
-  }
-
-  void _performSearch() async {
-    var headers = {
-      'Authorization': 'Bearer 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'
-    };
-    var response = await http.get(
-        Uri.parse(
-            'https://api.github.com/search/repositories?q=$_searchQuery&sort=stars&order=desc'),
-        headers: headers);
-    if (response.statusCode == 200) {
-      var data = jsonDecode(response.body)['items'];
-
-      List<Repo> reposList = [];
-      for (var repo in data) {
-        reposList.add(Repo(
-            id: repo['id'] ?? 0,
-            name: repo['name'] ?? '',
-            description: repo['description'] ?? '',
-            owner: repo['owner']?['login'] ?? ''));
-      }
-      print(reposList);
-
-      var query = SearchQuery(_searchQuery, DateTime.now());
-      searchHistory.queries.add(query);
-
-      setState(() {
-        _searchResults = reposList;
-      });
-    }
-  }
-
-  Widget _buildResultItem(BuildContext context, int index) {
-    Repo repo = _searchResults[index];
-
-    return Card(
-      child: ListTile(
-        title: Text(repo.name),
-        subtitle: Text(repo.owner),
-        trailing: IconButton(
-          icon: Icon(repo.isFavorite ? Icons.favorite : Icons.favorite_border),
-          onPressed: () {
-            setState(() {
-              repo.isFavorite = !repo.isFavorite;
-            });
-            _saveFavoriteList();
-          },
-        ),
-      ),
-    );
-  }
-
-  void _saveSearchHistory() async {
-    var prefs = await SharedPreferences.getInstance();
-    var json = jsonEncode(searchHistory.toJson());
-    await prefs.setString('search_history', json);
-  }
-
-  void _saveFavoriteList() async {
-    var prefs = await SharedPreferences.getInstance();
-    var json = jsonEncode(favoriteList.map((repo) => repo.toJson()).toList());
-    await prefs.setString('favorite_list', json);
   }
 }
