@@ -29,12 +29,13 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   Future<void> _onSearchTextEvent(
       SearchTextEvent event, Emitter emitter) async {
     var headers = {
-      'Authorization': 'Bearer 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'
+      'Authorization': 'Bearer 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'
     };
     var response = await http.get(
         Uri.parse(
             'https://api.github.com/search/repositories?q=${state.searchQuery}&sort=stars&order=desc'),
         headers: headers);
+
     if (response.statusCode == 200) {
       var data = jsonDecode(response.body)['items'];
 
@@ -54,6 +55,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       emitter(
           state.copyWith(searchResults: reposList, searchResultsEmpty: false));
     } else {
+      print('error occurred resp code is: ${response.statusCode}');
       emitter(state.copyWith(searchResultsEmpty: true));
     }
   }
@@ -69,7 +71,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
     List<Repo> favRepo = homeRepo.loadFavorites();
     favRepo.removeWhere((element) => !element.isFavorite);
-    print(favRepo.length);
 
     SearchHistory sh = homeRepo.loadSearchHistory();
 
