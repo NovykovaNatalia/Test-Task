@@ -1,5 +1,6 @@
 class Strings {
-  static String appName = "Github repos list";
-  static String searchApp = "Search App";
-  static String search = "Search";
+  static const appName = 'Github repos list';
+  static const searchApp = 'Search App';
+  static const search = 'Search';
+  static const token = 'put your githab api token here';
 }

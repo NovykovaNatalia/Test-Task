@@ -8,6 +8,7 @@ import 'package:leads_do_it_test/bloc/home/home_repository.dart';
 import '../../main.dart';
 import '../../models/repo.dart';
 import '../../models/search_query.dart';
+import '../../themes/strings.dart';
 import 'home_state.dart';
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
@@ -29,7 +30,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   Future<void> _onSearchTextEvent(
       SearchTextEvent event, Emitter emitter) async {
     var headers = {
-      'Authorization': 'Bearer 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'
+      'Authorization': 'Bearer ${Strings.token}'
     };
     var response = await http.get(
         Uri.parse(
