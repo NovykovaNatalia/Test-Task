@@ -30,4 +30,11 @@ class Styles {
     fontSize: 16,
     fontWeight: FontWeight.w400,
   );
+  static const TextStyle hintText = TextStyle(
+    decoration: TextDecoration.none,
+    color: AppColors.hintColor,
+    fontFamily: "Raleway-VariableFont_wght",
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+  );
 }

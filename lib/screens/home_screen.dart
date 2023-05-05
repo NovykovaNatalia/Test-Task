@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
@@ -10,6 +9,7 @@ import 'package:leads_do_it_test/themes/app_colors.dart';
 import 'package:leads_do_it_test/themes/styles.dart';
 
 import '../bloc/home/home_bloc.dart';
+import '../widgets/custom_search_field.dart';
 import '../themes/images.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -79,58 +79,86 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget showFoundResults() {
     return BlocBuilder<HomeBloc, HomeState>(
-        bloc: _bloc,
-        builder: (context, state) {
-          return Expanded(
-            child: ListView.builder(
-              itemCount: state.searchResults.length,
-              itemBuilder: (BuildContext context, int index) {
-                return Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.layer_1,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                  child: GestureDetector(
-                    onTap: () {
-                      _bloc.add(ChangeFavoriteByIndexEvent(state.searchResults[index]));
-                    },
-                    child: ListTile(
-                      trailing: IconButton(
-                        icon: state.searchResults[index].isFavorite
-                            ? SvgPicture.asset(Images.activeCheckboxIcon)
-                            : SvgPicture.asset(Images.inactiveCheckboxIcon),
-                        onPressed: () {
-                          _bloc.add(ChangeFavoriteByIndexEvent(state.searchResults[index]));
-                        },
+      bloc: _bloc,
+      builder: (context, state) {
+        return state.searchResults.isEmpty
+            ? Expanded(
+                child: Container(
+                  alignment: Alignment.center,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 17),
+                    child: Center(
+                      child: Text(
+                        Strings.noSearchResults,
+                        style: Styles.hintText,
+                        textAlign: TextAlign.center,
                       ),
-                      title: Text(state.searchResults[index].name),
                     ),
                   ),
-                );
-              },
-            ),
-          );
-        });
+                ),
+              )
+            : Expanded(
+                child: ListView.builder(
+                  itemCount: state.searchResults.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.layer_1,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      margin: const EdgeInsets.symmetric(
+                          vertical: 5, horizontal: 10),
+                      child: GestureDetector(
+                        onTap: () {
+                          _bloc.add(
+                            ChangeFavoriteByIndexEvent(
+                              state.searchResults[index],
+                            ),
+                          );
+                        },
+                        child: ListTile(
+                          trailing: InkWell(
+                            child: state.searchResults[index].isFavorite
+                                ? SvgPicture.asset(Images.activeCheckboxIcon)
+                                : SvgPicture.asset(Images.inactiveCheckboxIcon),
+                            onTap: () {
+                              _bloc.add(
+                                ChangeFavoriteByIndexEvent(
+                                  state.searchResults[index],
+                                ),
+                              );
+                            },
+                          ),
+                          title: Text(state.searchResults[index].name),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+      },
+    );
   }
 
   Widget showSearchHistory() {
     return BlocBuilder<HomeBloc, HomeState>(
         bloc: _bloc,
         builder: (context, state) {
-        return Expanded(
-            child: ListView.builder(
-                itemCount: state.searchHistory.queries.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final reversedIndex = state.searchHistory.queries.length - index - 1;
-                  return ListTile(
-                    title: Text(state.searchHistory.queries[reversedIndex].query),
-                    subtitle:
-                        Text(state.searchHistory.queries[reversedIndex].timeStamp.toString()),
-                  );
-                }));
-      }
-    );
+          return Expanded(
+              child: ListView.builder(
+                  itemCount: state.searchHistory.queries.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final reversedIndex =
+                        state.searchHistory.queries.length - index - 1;
+                    return ListTile(
+                      title: Text(
+                          state.searchHistory.queries[reversedIndex].query),
+                      subtitle: Text(state
+                          .searchHistory.queries[reversedIndex].timeStamp
+                          .toString()),
+                    );
+                  }));
+        });
   }
 
   AppBar _buildTopping() {
@@ -139,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
       backgroundColor: AppColors.main,
       title: Row(
         children: [
-          Expanded(
+          const Expanded(
             child: Center(
               child: Text(
                 Strings.appName,
@@ -168,42 +196,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSearchField() {
     return Padding(
-      padding: const EdgeInsets.only(top: 24, left: 16, right: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.1),
-          border: Border.all(color: AppColors.primary, width: 2.0),
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: TextField(
-          controller: _textEditingController,
-          onChanged: (text) {
+        padding: const EdgeInsets.only(top: 24, left: 16, right: 16),
+        child: SearchField(
+          onCloseTap: () {
+            _bloc.add(ClearSearchQueryEvent());
+          },
+          onTextChanged: (text) {
             _bloc.add(ChangeSearchQueryEvent(text));
           },
-          onSubmitted: (text) {
+          onTextSubmitted: () {
             _bloc.add(SearchTextEvent());
           },
-          decoration: InputDecoration(
-            labelText: Strings.search,
-            border: InputBorder.none,
-            prefixIcon: Padding(
-              padding: const EdgeInsets.only(
-                  top: 18, bottom: 18, left: 20, right: 20),
-              child: SvgPicture.asset(Images.searchIcon),
-            ),
-            suffixIcon: Padding(
-              padding: const EdgeInsets.all(18),
-              child: InkWell(
-                onTap: () {
-                  _textEditingController.clear();
-                  _bloc.add(ClearSearchQueryEvent());
-                },
-                child: SvgPicture.asset(Images.closeIcon),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+        ));
   }
 }

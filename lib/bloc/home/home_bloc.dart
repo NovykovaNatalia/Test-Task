@@ -4,8 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:leads_do_it_test/bloc/home/home_event.dart';
 import 'package:http/http.dart' as http;
 import 'package:leads_do_it_test/bloc/home/home_repository.dart';
-
-import '../../main.dart';
 import '../../models/repo.dart';
 import '../../models/search_query.dart';
 import '../../themes/strings.dart';
@@ -13,6 +11,7 @@ import 'home_state.dart';
 
 class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final homeRepo = HomeRepository();
+
   HomeBloc() : super(HomeState.initial()) {
     on<SearchTextEvent>(_onSearchTextEvent);
     on<ChangeSearchQueryEvent>(_onChangeSearchQueryEvent);
@@ -22,6 +21,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
     add(InitHistAndFavEvent());
   }
+
   Future<void> _onClearSearchQueryEvent(
       ClearSearchQueryEvent event, Emitter emitter) async {
     emitter(state.copyWith(searchQuery: '', searchResults: []));
@@ -29,12 +29,10 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   Future<void> _onSearchTextEvent(
       SearchTextEvent event, Emitter emitter) async {
-    var headers = {
-      'Authorization': 'Bearer ${Strings.token}'
-    };
+    var headers = {'Authorization': 'Bearer ${Strings.token}'};
     var response = await http.get(
         Uri.parse(
-            'https://api.github.com/search/repositories?q=${state.searchQuery}&sort=stars&order=desc'),
+            'https://api.github.com/search/repositories?q=${state.searchQuery}&sort=stars&order=desc&per_page=15'),
         headers: headers);
 
     if (response.statusCode == 200) {
@@ -50,8 +48,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       }
 
       var query = SearchQuery(state.searchQuery, DateTime.now());
-      state.searchHistory.queries
-          .add(query);
+      state.searchHistory.queries.add(query);
       homeRepo.saveSearchHistory(state.searchHistory);
       emitter(
           state.copyWith(searchResults: reposList, searchResultsEmpty: false));
@@ -80,15 +77,22 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
 
   Future<void> _onChangeFavoriteByIndexEvent(
       ChangeFavoriteByIndexEvent event, Emitter emitter) async {
-
     event.repo.isFavorite = !event.repo.isFavorite;
-    if (event.repo.isFavorite && state.favoriteList
-        .where((element) => element.id == event.repo.id).isEmpty) {
-        state.favoriteList.add(event.repo);
+    if (event.repo.isFavorite &&
+        state.favoriteList
+            .where((element) => element.id == event.repo.id)
+            .isEmpty) {
+      state.favoriteList.add(event.repo);
     } else {
       state.favoriteList.remove(event.repo);
-      List<Repo> inSearchResults = state.searchResults.where((element) => element.id == event.repo.id).toList();
-      if(inSearchResults.isNotEmpty) inSearchResults.forEach((element) {element.isFavorite = false;});
+      List<Repo> inSearchResults = state.searchResults
+          .where((element) => element.id == event.repo.id)
+          .toList();
+      if (inSearchResults.isNotEmpty) {
+        for (var element in inSearchResults) {
+          element.isFavorite = false;
+        }
+      }
     }
     homeRepo.saveFavorites(state.favoriteList);
     emitter(state.copyWith());

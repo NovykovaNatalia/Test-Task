@@ -56,7 +56,7 @@ class _FavouriteScreenState extends State<FavouriteScreen> {
               ),
             ],
           ),
-          Expanded(
+          const Expanded(
             child: Center(
               child: Text(
                 Strings.appName,
@@ -72,36 +72,50 @@ class _FavouriteScreenState extends State<FavouriteScreen> {
 
   Widget _buildBody() {
     return BlocBuilder<HomeBloc, HomeState>(
-        bloc: widget.bloc,
-        builder: (context, state) {
-          return Expanded(
-            child: ListView.builder(
-              itemCount: state.favoriteList.length,
-              itemBuilder: (BuildContext context, int index) {
-                Repo repo = state.favoriteList[index];
-                return Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.layer_1,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  margin:
-                      const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                  child: ListTile(
-                    title: Text(repo.name),
-                    subtitle: Text(repo.owner),
-                    trailing: IconButton(
-                      icon: repo.isFavorite
-                          ? SvgPicture.asset(Images.activeCheckboxIcon)
-                          : SvgPicture.asset(Images.inactiveCheckboxIcon),
-                      onPressed: () {
-                        widget.bloc.add(ChangeFavoriteByIndexEvent(repo));
-                      },
+      bloc: widget.bloc,
+      builder: (context, state) => state.favoriteList.isEmpty
+          ? Expanded(
+              child: Container(
+                alignment: Alignment.center,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 17),
+                  child: Center(
+                    child: Text(
+                      Strings.noFavorites,
+                      style: Styles.hintText,
+                      textAlign: TextAlign.center,
                     ),
                   ),
-                );
-              },
+                ),
+              ),
+            )
+          : Expanded(
+              child: ListView.builder(
+                itemCount: state.favoriteList.length,
+                itemBuilder: (BuildContext context, int index) {
+                  Repo repo = state.favoriteList[index];
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.layer_1,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    margin:
+                        const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                    child: ListTile(
+                      title: Text(repo.name),
+                      trailing: IconButton(
+                        icon: repo.isFavorite
+                            ? SvgPicture.asset(Images.activeCheckboxIcon)
+                            : SvgPicture.asset(Images.inactiveCheckboxIcon),
+                        onPressed: () {
+                          widget.bloc.add(ChangeFavoriteByIndexEvent(repo));
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
-          );
-        });
+    );
   }
 }

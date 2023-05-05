@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:leads_do_it_test/screens/splash_screen.dart';
 

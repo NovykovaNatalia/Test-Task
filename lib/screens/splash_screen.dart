@@ -1,11 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:leads_do_it_test/themes/strings.dart';
 import 'package:leads_do_it_test/themes/app_colors.dart';
 import 'package:leads_do_it_test/themes/styles.dart';
-
 import 'home_screen.dart';
 
 class SplashScreen extends StatelessWidget {
@@ -13,7 +12,7 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     Timer(const Duration(seconds: 2), () {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => HomeScreen()),
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     }); // Navigate to SecondScreen after 2 seconds
 
@@ -25,12 +24,12 @@ class SplashScreen extends StatelessWidget {
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            children: const [
               Text(Strings.searchApp, style: Styles.textSplash),
-              const SizedBox(height: 24),
-              const SpinKitRipple(
-                color: Colors.blue,
-                size: 50.0,
+              SizedBox(height: 16),
+              CupertinoActivityIndicator(
+                color: AppColors.grey,
+                radius: 10.0,
               ),
             ],
           ),
